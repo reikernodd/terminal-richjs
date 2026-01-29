@@ -1,9 +1,9 @@
-import { Console } from '../src/console/console';
-import { Table } from '../src/renderables/table';
+import { Console } from "../src/console/console";
+import { Table } from "../src/renderables/table";
 
 const console = new Console();
 
-const table = new Table({ box: 'round', showHeader: true });
+const table = new Table({ box: "round", showHeader: true });
 table.addColumn("Date");
 table.addColumn("Title");
 table.addColumn("Budget");

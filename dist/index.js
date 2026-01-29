@@ -1,10 +1,10 @@
 import process2 from 'process';
 import wrapAnsi from 'wrap-ansi';
-import terminalSize from 'terminal-size';
 import os from 'os';
-import stringWidth3 from 'string-width';
+import terminalSize from 'terminal-size';
 import chalk from 'chalk';
 import tinycolor from 'tinycolor2';
+import stringWidth3 from 'string-width';
 import fs from 'fs';
 import hljs from 'highlight.js';
 import boxes from 'cli-boxes';
@@ -19,8 +19,6 @@ var __require = /* @__PURE__ */ ((x) => typeof require !== "undefined" ? require
   throw Error('Dynamic require of "' + x + '" is not supported');
 });
 var Terminal = class {
-  constructor() {
-  }
   get width() {
     return terminalSize().columns;
   }
@@ -42,7 +40,7 @@ var Terminal = class {
     if (this.isLegacyWindows) {
       return "standard";
     }
-    if (env.TERM && env.TERM.includes("256")) {
+    if (env.TERM?.includes("256")) {
       return "256";
     }
     return "standard";
@@ -171,7 +169,9 @@ var Style = class _Style {
       }
       return null;
     }
-    const rgbMatch = word.match(/^rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)$/i);
+    const rgbMatch = word.match(
+      /^rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)$/i
+    );
     if (rgbMatch) {
       return {
         r: Math.min(255, parseInt(rgbMatch[1], 10)),
@@ -301,56 +301,6 @@ var Style = class _Style {
     return typeof color === "object" && color !== null && "r" in color && "g" in color && "b" in color;
   }
 };
-
-// src/core/segment.ts
-var Segment = class _Segment {
-  constructor(text, style = Style.null(), isControl = false) {
-    this.text = text;
-    this.style = style;
-    this.isControl = isControl;
-  }
-  /**
-   * Implementation of Renderable protocol.
-   */
-  __rich_console__(_console, _options) {
-    return {
-      segments: [this],
-      width: this.cellLength()
-    };
-  }
-  /**
-   * Calculates the cell length of the text.
-   */
-  cellLength() {
-    if (this.isControl) return 0;
-    return stringWidth3(this.text);
-  }
-  /**
-   * Renders the segment to an ANSI string.
-   */
-  render() {
-    if (this.isControl) return this.text;
-    if (typeof this.style?.render === "function") {
-      return this.style.render(this.text);
-    }
-    return this.text;
-  }
-  /**
-   * Splits the segment into lines.
-   */
-  splitLines(_allowEmpty = false) {
-    const lines = this.text.split("\n");
-    return lines.map((line) => {
-      return [new _Segment(line, this.style, this.isControl)];
-    });
-  }
-  /**
-   * Creates a new Segment with modified properties.
-   */
-  clone(text, style, isControl) {
-    return new _Segment(text ?? this.text, style ?? this.style, isControl ?? this.isControl);
-  }
-};
 var Color = class _Color {
   tc;
   constructor(color) {
@@ -461,28 +411,83 @@ var Theme = class _Theme {
     return Style.parse(resolvedParts.join(" "));
   }
   static fromPalette(palette) {
-    return new _Theme({
-      "danger": `bold ${palette.get("danger")}`,
-      "success": `bold ${palette.get("success")}`,
-      "warning": `bold ${palette.get("warning")}`,
-      "info": `${palette.get("info")}`
-    }, palette);
+    return new _Theme(
+      {
+        danger: `bold ${palette.get("danger")}`,
+        success: `bold ${palette.get("success")}`,
+        warning: `bold ${palette.get("warning")}`,
+        info: `${palette.get("info")}`
+      },
+      palette
+    );
   }
 };
 var DEFAULT_THEME = new Theme({
-  "none": Style.null(),
-  "dim": Style.parse("dim"),
-  "bright": Style.parse("bold"),
+  none: Style.null(),
+  dim: Style.parse("dim"),
+  bright: Style.parse("bold"),
   // Semantic
-  "danger": Style.parse("bold red"),
-  "success": Style.parse("bold green"),
-  "warning": Style.parse("bold yellow"),
-  "info": Style.parse("cyan"),
+  danger: Style.parse("bold red"),
+  success: Style.parse("bold green"),
+  warning: Style.parse("bold yellow"),
+  info: Style.parse("cyan"),
   // Components
   "rule.line": Style.parse("green"),
   "repr.str": Style.parse("green"),
   "repr.brace": Style.parse("bold")
 });
+var Segment = class _Segment {
+  constructor(text, style = Style.null(), isControl = false) {
+    this.text = text;
+    this.style = style;
+    this.isControl = isControl;
+  }
+  /**
+   * Implementation of Renderable protocol.
+   */
+  __rich_console__(_console, _options) {
+    return {
+      segments: [this],
+      width: this.cellLength()
+    };
+  }
+  /**
+   * Calculates the cell length of the text.
+   */
+  cellLength() {
+    if (this.isControl) return 0;
+    return stringWidth3(this.text);
+  }
+  /**
+   * Renders the segment to an ANSI string.
+   */
+  render() {
+    if (this.isControl) return this.text;
+    if (typeof this.style?.render === "function") {
+      return this.style.render(this.text);
+    }
+    return this.text;
+  }
+  /**
+   * Splits the segment into lines.
+   */
+  splitLines(_allowEmpty = false) {
+    const lines = this.text.split("\n");
+    return lines.map((line) => {
+      return [new _Segment(line, this.style, this.isControl)];
+    });
+  }
+  /**
+   * Creates a new Segment with modified properties.
+   */
+  clone(text, style, isControl) {
+    return new _Segment(
+      text ?? this.text,
+      style ?? this.style,
+      isControl ?? this.isControl
+    );
+  }
+};
 
 // src/core/markup.ts
 var MarkupParser = class _MarkupParser {
@@ -546,12 +551,14 @@ var MarkupParser = class _MarkupParser {
 
 // src/types/renderable.ts
 function isRenderable(obj) {
-  return typeof obj === "object" && obj !== null && "__rich_console__" in obj && typeof obj.__rich_console__ === "function";
+  return typeof obj === "object" && obj !== null && "__rich_console__" in obj && // biome-ignore lint/suspicious/noExplicitAny: Type guard check
+  typeof obj.__rich_console__ === "function";
 }
 
 // src/traceback/trace.ts
-var Trace = class {
-  static parse(error) {
+var Trace;
+((Trace2) => {
+  function parse(error) {
     if (!error.stack) return [];
     const lines = error.stack.split("\n");
     const frames = [];
@@ -568,8 +575,8 @@ var Trace = class {
         location = line.substring(3);
       }
       const locParts = location.split(":");
-      const columnNumber = parseInt(locParts.pop() || "0");
-      const lineNumber = parseInt(locParts.pop() || "0");
+      const columnNumber = parseInt(locParts.pop() || "0", 10);
+      const lineNumber = parseInt(locParts.pop() || "0", 10);
       const filePath = locParts.join(":");
       frames.push({
         functionName: functionName || "<anonymous>",
@@ -580,7 +587,8 @@ var Trace = class {
     }
     return frames;
   }
-};
+  Trace2.parse = parse;
+})(Trace || (Trace = {}));
 
 // src/syntax/theme.ts
 var MONOKAI = {
@@ -937,7 +945,9 @@ var Traceback = class {
     segments.push(new Segment("\n", Style.null(), true));
     const headerStyle = Style.parse("#ff5555 bold");
     segments.push(new Segment("Traceback", headerStyle));
-    segments.push(new Segment(" (most recent call last)\n", Style.parse("dim")));
+    segments.push(
+      new Segment(" (most recent call last)\n", Style.parse("dim"))
+    );
     segments.push(new Segment("\n", Style.null(), true));
     let filteredFrames = this.frames;
     if (suppressInternal) {
@@ -951,9 +961,13 @@ var Traceback = class {
       segments.push(new Segment("  File ", frameHeaderStyle));
       segments.push(new Segment(`"${frame.filePath}"`, Style.parse("#61afef")));
       segments.push(new Segment(", line ", frameHeaderStyle));
-      segments.push(new Segment(String(frame.lineNumber), Style.parse("#e5c07b bold")));
+      segments.push(
+        new Segment(String(frame.lineNumber), Style.parse("#e5c07b bold"))
+      );
       segments.push(new Segment(", in ", frameHeaderStyle));
-      segments.push(new Segment(frame.functionName, Style.parse("#98c379 italic")));
+      segments.push(
+        new Segment(frame.functionName, Style.parse("#98c379 italic"))
+      );
       segments.push(new Segment("\n", Style.null(), true));
       let codeSnippet = "";
       try {
@@ -997,7 +1011,9 @@ var Traceback = class {
         }
       } catch {
         segments.push(new Segment("    ", Style.null()));
-        segments.push(new Segment("[source not available]", Style.parse("dim italic")));
+        segments.push(
+          new Segment("[source not available]", Style.parse("dim italic"))
+        );
         segments.push(new Segment("\n", Style.null(), true));
       }
       segments.push(new Segment("\n", Style.null(), true));
@@ -1214,7 +1230,20 @@ var SPINNERS = {
   },
   clock: {
     interval: 100,
-    frames: ["\u{1F55B} ", "\u{1F550} ", "\u{1F551} ", "\u{1F552} ", "\u{1F553} ", "\u{1F554} ", "\u{1F555} ", "\u{1F556} ", "\u{1F557} ", "\u{1F558} ", "\u{1F559} ", "\u{1F55A} "]
+    frames: [
+      "\u{1F55B} ",
+      "\u{1F550} ",
+      "\u{1F551} ",
+      "\u{1F552} ",
+      "\u{1F553} ",
+      "\u{1F554} ",
+      "\u{1F555} ",
+      "\u{1F556} ",
+      "\u{1F557} ",
+      "\u{1F558} ",
+      "\u{1F559} ",
+      "\u{1F55A} "
+    ]
   },
   earth: {
     interval: 180,
@@ -1293,7 +1322,9 @@ var Spinner = class {
   constructor(name = "dots", options = {}) {
     const spinner = SPINNERS[name];
     if (!spinner) {
-      throw new Error(`No spinner called '${name}'. Use listSpinners() to see available spinners.`);
+      throw new Error(
+        `No spinner called '${name}'. Use listSpinners() to see available spinners.`
+      );
     }
     this.name = name;
     this.frames = typeof spinner.frames === "string" ? [...spinner.frames] : [...spinner.frames];
@@ -1464,7 +1495,10 @@ var Console = class {
    * Displays a status spinner.
    */
   status(message, options = {}) {
-    return new Status(message, { spinnerName: options.spinner, ...options });
+    return new Status(message, {
+      spinnerName: options.spinner,
+      ...options
+    });
   }
   /**
    * Run a task with a status spinner.
@@ -1821,11 +1855,17 @@ var Panel = class _Panel {
     } else {
       panelWidth = Math.min(
         maxWidth,
-        Math.max(maxContentWidth + 2 + padding[1] + padding[3], titleWidth + 2, subtitleWidth + 2)
+        Math.max(
+          maxContentWidth + 2 + padding[1] + padding[3],
+          titleWidth + 2,
+          subtitleWidth + 2
+        )
       );
     }
     const innerWidth = panelWidth - 2;
-    segments.push(...this.renderTopBorder(box, innerWidth, borderStyle, titleAlign));
+    segments.push(
+      ...this.renderTopBorder(box, innerWidth, borderStyle, titleAlign)
+    );
     segments.push(new Segment("\n", Style.null(), true));
     for (let i = 0; i < padding[0]; i++) {
       segments.push(new Segment(box.left, borderStyle));
@@ -1855,7 +1895,9 @@ var Panel = class _Panel {
       segments.push(new Segment(box.right, borderStyle));
       segments.push(new Segment("\n", Style.null(), true));
     }
-    segments.push(...this.renderBottomBorder(box, innerWidth, borderStyle, subtitleAlign));
+    segments.push(
+      ...this.renderBottomBorder(box, innerWidth, borderStyle, subtitleAlign)
+    );
     segments.push(new Segment("\n", Style.null(), true));
     return {
       segments,
@@ -1909,7 +1951,10 @@ var Panel = class _Panel {
       segments.push(new Segment(box.topRight, borderStyle));
     } else {
       segments.push(
-        new Segment(box.topLeft + box.top.repeat(innerWidth) + box.topRight, borderStyle)
+        new Segment(
+          box.topLeft + box.top.repeat(innerWidth) + box.topRight,
+          borderStyle
+        )
       );
     }
     return segments;
@@ -1949,7 +1994,10 @@ var Panel = class _Panel {
       segments.push(new Segment(box.bottomRight, borderStyle));
     } else {
       segments.push(
-        new Segment(box.bottomLeft + box.bottom.repeat(innerWidth) + box.bottomRight, borderStyle)
+        new Segment(
+          box.bottomLeft + box.bottom.repeat(innerWidth) + box.bottomRight,
+          borderStyle
+        )
       );
     }
     return segments;
@@ -1973,7 +2021,10 @@ var Rule = class {
       line = this.characters.repeat(width);
     }
     return {
-      segments: [new Segment(line, this.style), new Segment("\n", Style.null(), true)],
+      segments: [
+        new Segment(line, this.style),
+        new Segment("\n", Style.null(), true)
+      ],
       width
     };
   }
@@ -2044,11 +2095,17 @@ var Table = class {
     const totalBorderWidth = this.columns.length + 1;
     const paddingWidth = padding * 2 * this.columns.length;
     const availableWidth = width - totalBorderWidth - paddingWidth;
-    const colWidth = Math.max(1, Math.floor(availableWidth / this.columns.length));
+    const colWidth = Math.max(
+      1,
+      Math.floor(availableWidth / this.columns.length)
+    );
     const paddingStr = " ".repeat(padding);
     if (this.options.title) {
       const titleLine = this.alignText(this.options.title, width, "center");
-      segments.push(new Segment(titleLine, titleStyle), new Segment("\n", Style.null(), true));
+      segments.push(
+        new Segment(titleLine, titleStyle),
+        new Segment("\n", Style.null(), true)
+      );
     }
     if (this.options.showHeader !== false) {
       segments.push(
@@ -2094,9 +2151,14 @@ var Table = class {
         if (typeof cell === "string") {
           const text = this.alignText(cell, colWidth, col.justify);
           const cellStyle = col.style.combine(rowStyle);
-          cellSegments = [new Segment(paddingStr + text + paddingStr, cellStyle)];
+          cellSegments = [
+            new Segment(paddingStr + text + paddingStr, cellStyle)
+          ];
         } else if (isRenderable(cell)) {
-          const result = getRenderResult(cell, console, { ...consoleOptions, width: colWidth });
+          const result = getRenderResult(cell, console, {
+            ...consoleOptions,
+            width: colWidth
+          });
           segments.push(new Segment(paddingStr));
           cellSegments = result.segments.map((s) => {
             return new Segment(s.text, s.style.combine(rowStyle), s.isControl);
@@ -2141,7 +2203,9 @@ var Table = class {
         const cell = this.footerRow[i];
         const text = typeof cell === "string" ? cell : "";
         const alignedText = this.alignText(text, colWidth, col.justify);
-        segments.push(new Segment(paddingStr + alignedText + paddingStr, footerStyle));
+        segments.push(
+          new Segment(paddingStr + alignedText + paddingStr, footerStyle)
+        );
         segments.push(
           new Segment(
             i === this.columns.length - 1 ? box.right : box.verticalMid || "\u2502",
@@ -2161,7 +2225,10 @@ var Table = class {
     if (this.options.caption) {
       const captionStyle = typeof this.options.captionStyle === "string" ? Style.parse(this.options.captionStyle) : this.options.captionStyle ?? Style.parse("dim italic");
       const captionLine = this.alignText(this.options.caption, width, "center");
-      segments.push(new Segment(captionLine, captionStyle), new Segment("\n", Style.null(), true));
+      segments.push(
+        new Segment(captionLine, captionStyle),
+        new Segment("\n", Style.null(), true)
+      );
     }
     return { segments, width };
   }
@@ -2243,7 +2310,9 @@ var Tree = class _Tree {
     } else if (isRenderable(label)) {
       const result = label.__rich_console__(console, options);
       if ("segments" in result) {
-        const labelSegments = result.segments.filter((s) => !s.isControl || s.text !== "\n");
+        const labelSegments = result.segments.filter(
+          (s) => !s.isControl || s.text !== "\n"
+        );
         segments.push(...labelSegments);
       }
     }
@@ -2279,7 +2348,13 @@ var Tree = class _Tree {
         segments.push(new Segment("\n", Style.null(), true));
       }
       const newPrefix = prefix + continuation;
-      this.renderChildren(child.children, newPrefix, segments, console, options);
+      this.renderChildren(
+        child.children,
+        newPrefix,
+        segments,
+        console,
+        options
+      );
     });
   }
 };
@@ -2305,14 +2380,18 @@ var Layout = class _Layout {
    */
   splitRow(...layouts) {
     this._direction = "row";
-    this._children = layouts.map((l) => l instanceof _Layout ? l : new _Layout(l));
+    this._children = layouts.map(
+      (l) => l instanceof _Layout ? l : new _Layout(l)
+    );
   }
   /**
    * Split the layout into a column (vertical split).
    */
   splitColumn(...layouts) {
     this._direction = "column";
-    this._children = layouts.map((l) => l instanceof _Layout ? l : new _Layout(l));
+    this._children = layouts.map(
+      (l) => l instanceof _Layout ? l : new _Layout(l)
+    );
   }
   get renderable() {
     return this._renderable;
@@ -2326,7 +2405,11 @@ var Layout = class _Layout {
     const height = options.height ?? console.height;
     if (this._children.length === 0) {
       if (this._renderable) {
-        return getRenderResult(this._renderable, console, { ...options, width, height });
+        return getRenderResult(this._renderable, console, {
+          ...options,
+          width,
+          height
+        });
       }
       return { segments: [], width, height: 0 };
     }
@@ -2351,8 +2434,11 @@ var Layout = class _Layout {
           return;
         }
         const w = childWidths[i];
-        const result = getRenderResult(child, console, { ...options, width: w });
-        let childSegments = result.segments;
+        const result = getRenderResult(child, console, {
+          ...options,
+          width: w
+        });
+        const childSegments = result.segments;
         const lines = splitLines(childSegments);
         renderedLines.push(lines);
         if (lines.length > maxHeight) maxHeight = lines.length;
@@ -2470,7 +2556,10 @@ var Padding = class {
     if (typeof this.renderable === "string") {
       contentSegments = [new Segment(this.renderable)];
     } else if (isRenderable(this.renderable)) {
-      const result = this.renderable.__rich_console__(console, { ...options, width: innerWidth });
+      const result = this.renderable.__rich_console__(console, {
+        ...options,
+        width: innerWidth
+      });
       if ("segments" in result) contentSegments = result.segments;
     }
     const lines = splitLines(contentSegments);
@@ -2579,9 +2668,13 @@ var Columns = class {
     if (this.options.width) {
       columnWidth = this.options.width;
     } else if (this.options.equal) {
-      columnWidth = Math.max(...items.map((item) => this.getDisplayWidth(item)));
+      columnWidth = Math.max(
+        ...items.map((item) => this.getDisplayWidth(item))
+      );
     } else {
-      columnWidth = Math.max(...items.map((item) => this.getDisplayWidth(item)));
+      columnWidth = Math.max(
+        ...items.map((item) => this.getDisplayWidth(item))
+      );
     }
     const columnCount = Math.max(
       1,
@@ -2737,7 +2830,9 @@ var Prompt = class {
             value = String(options.default);
           }
           if (options.choices && !options.choices.includes(value)) {
-            console.print(`[red]Please select one of: ${options.choices.join(", ")}[/]`);
+            console.print(
+              `[red]Please select one of: ${options.choices.join(", ")}[/]`
+            );
             askQuestion();
             return;
           }
@@ -2906,17 +3001,23 @@ var ProgressBar = class {
         if (width >= 20 && !isComplete) {
           const gradientColors = ["#61afef", "#66d9ef", "#50fa7b"];
           for (let i = 0; i < filledWidth; i++) {
-            const colorIndex = Math.floor(i / filledWidth * gradientColors.length);
+            const colorIndex = Math.floor(
+              i / filledWidth * gradientColors.length
+            );
             const color = gradientColors[Math.min(colorIndex, gradientColors.length - 1)];
             segments.push(new Segment(completeChar, Style.parse(color)));
           }
         } else {
-          segments.push(new Segment(completeChar.repeat(filledWidth), completeStyle));
+          segments.push(
+            new Segment(completeChar.repeat(filledWidth), completeStyle)
+          );
         }
       }
       const remainingWidth = width - filledWidth;
       if (remainingWidth > 0) {
-        segments.push(new Segment(remainingChar.repeat(remainingWidth), remainingStyle));
+        segments.push(
+          new Segment(remainingChar.repeat(remainingWidth), remainingStyle)
+        );
       }
     }
     return {
@@ -2933,7 +3034,9 @@ var PercentageColumn = class {
   __rich_console__(_console, _options) {
     const pct = Math.floor(this.percentage * 100);
     const text = `${pct.toString().padStart(3)}%`;
-    const style = Style.parse(this.style ?? (pct >= 100 ? "#50fa7b bold" : "#61afef"));
+    const style = Style.parse(
+      this.style ?? (pct >= 100 ? "#50fa7b bold" : "#61afef")
+    );
     return {
       segments: [new Segment(text, style)],
       width: 4
@@ -3025,7 +3128,8 @@ var Progress = class {
     const task = this.tasks.find((t) => t.id === taskId);
     if (!task) return;
     if (options.completed !== void 0) task.completed = options.completed;
-    if (options.description !== void 0) task.description = options.description;
+    if (options.description !== void 0)
+      task.description = options.description;
     if (task.completed >= task.total) {
       task.finished = true;
       task.endTime = Date.now();
@@ -3062,7 +3166,9 @@ var Progress = class {
       const percent = Math.floor(task.completed / task.total * 100);
       const barStr = this.renderSimpleBar(task.completed, task.total, 30);
       const percentStyle = percent >= 100 ? Style.parse("#50fa7b bold") : Style.parse("#61afef");
-      lines.push(`${task.description.padEnd(20)} ${barStr} ${percentStyle.apply(`${percent}%`)}`);
+      lines.push(
+        `${task.description.padEnd(20)} ${barStr} ${percentStyle.apply(`${percent}%`)}`
+      );
     }
     const output = lines.join("\n") + "\n";
     this.lastRenderedLines = lines.length;
@@ -3429,7 +3535,7 @@ function inspect(obj, options = {}) {
     let valueStr = String(value);
     if (value === null) type = "null";
     else if (Array.isArray(value)) type = "Array";
-    if (valueStr.length > 50) valueStr = valueStr.substring(0, 47) + "...";
+    if (valueStr.length > 50) valueStr = `${valueStr.substring(0, 47)}...`;
     table.addRow(prop, type, valueStr);
   }
   let json = "";
@@ -3439,7 +3545,9 @@ function inspect(obj, options = {}) {
     json = "[Circular]";
   }
   new Syntax(json, "json");
-  console.print(new Panel(table, { title, box: "round", borderStyle: void 0 }));
+  console.print(
+    new Panel(table, { title, box: "round", borderStyle: void 0 })
+  );
 }
 
 // src/index.ts

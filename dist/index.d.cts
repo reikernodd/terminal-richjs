@@ -2,7 +2,7 @@ import { SpinnerName } from 'cli-spinners';
 import boxes from 'cli-boxes';
 import tinycolor from 'tinycolor2';
 
-type StandardColor = 'black' | 'red' | 'green' | 'yellow' | 'blue' | 'magenta' | 'cyan' | 'white' | 'bright_black' | 'bright_red' | 'bright_green' | 'bright_yellow' | 'bright_blue' | 'bright_magenta' | 'bright_cyan' | 'bright_white';
+type StandardColor = "black" | "red" | "green" | "yellow" | "blue" | "magenta" | "cyan" | "white" | "bright_black" | "bright_red" | "bright_green" | "bright_yellow" | "bright_blue" | "bright_magenta" | "bright_cyan" | "bright_white";
 interface RGB {
     r: number;
     g: number;
@@ -89,7 +89,7 @@ declare class Theme {
 }
 declare const DEFAULT_THEME: Theme;
 
-type ColorSystem = 'standard' | '256' | 'truecolor' | 'none';
+type ColorSystem = "standard" | "256" | "truecolor" | "none";
 interface ConsoleOptions {
     /**
      * The width of the console in characters.
@@ -253,8 +253,8 @@ declare class MarkupParser {
     parse(markup: string): Segment[];
 }
 
-type JustifyMethod = 'left' | 'center' | 'right' | 'full';
-type OverflowMethod = 'fold' | 'crop' | 'ellipsis';
+type JustifyMethod = "left" | "center" | "right" | "full";
+type OverflowMethod = "fold" | "crop" | "ellipsis";
 declare class Text implements Renderable {
     readonly style: Style;
     readonly justify: JustifyMethod;
@@ -283,7 +283,7 @@ interface BoxData {
     verticalMid?: string;
     [key: string]: string | undefined;
 }
-type BoxStyle = 'none' | 'rounded' | 'round' | 'heavy' | 'bold' | 'double' | 'single' | 'square' | 'ascii' | 'minimal' | 'simple' | 'markdown' | keyof typeof boxes;
+type BoxStyle = "none" | "rounded" | "round" | "heavy" | "bold" | "double" | "single" | "square" | "ascii" | "minimal" | "simple" | "markdown" | keyof typeof boxes;
 /**
  * Get box drawing characters for a given style.
  */
@@ -298,9 +298,9 @@ declare function listBoxStyles(): string[];
 
 interface PanelOptions {
     title?: string;
-    titleAlign?: 'left' | 'center' | 'right';
+    titleAlign?: "left" | "center" | "right";
     subtitle?: string;
-    subtitleAlign?: 'left' | 'center' | 'right';
+    subtitleAlign?: "left" | "center" | "right";
     box?: BoxStyle;
     style?: Style | string;
     borderStyle?: Style | string;
@@ -353,14 +353,14 @@ interface ColumnOptions {
     style?: Style | string;
     headerStyle?: Style | string;
     footerStyle?: Style | string;
-    justify?: 'left' | 'center' | 'right';
-    vertical?: 'top' | 'middle' | 'bottom';
+    justify?: "left" | "center" | "right";
+    vertical?: "top" | "middle" | "bottom";
     width?: number;
     minWidth?: number;
     maxWidth?: number;
     ratio?: number;
     noWrap?: boolean;
-    overflow?: 'fold' | 'crop' | 'ellipsis';
+    overflow?: "fold" | "crop" | "ellipsis";
 }
 interface TableOptions {
     title?: string;
@@ -478,7 +478,7 @@ declare class Padding implements Renderable {
     __rich_console__(console: Console, options: ConsoleOptions): RenderResult;
 }
 
-type AlignMethod = 'left' | 'center' | 'right';
+type AlignMethod = "left" | "center" | "right";
 declare class Align implements Renderable {
     renderable: Renderable | string;
     align: AlignMethod;
@@ -904,7 +904,7 @@ declare function listEmoji(): string[];
  */
 declare function hasEmoji(name: string): boolean;
 
-type LogLevel = 'debug' | 'info' | 'warn' | 'error';
+type LogLevel = "debug" | "info" | "warn" | "error";
 interface LogRecord {
     level: LogLevel;
     message: string;

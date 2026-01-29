@@ -4,6 +4,7 @@ export default defineConfig({
   entry: {
     index: 'src/index.ts',
     logging: 'src/logging/index.ts',
+    cli: 'src/cli.ts',
   },
   format: ['cjs', 'esm'],
   dts: true,
@@ -25,6 +26,6 @@ export default defineConfig({
     'highlight.js',
     'cli-spinners',
     'log-symbols',
-    'node-emoji'
+    'node-emoji',
   ],
 });

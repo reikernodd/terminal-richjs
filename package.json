@@ -18,6 +18,9 @@
       "import": "./dist/logging.js"
     }
   },
+  "bin": {
+    "richjs": "./dist/cli.cjs"
+  },
   "files": [
     "dist"
   ],
@@ -28,6 +31,7 @@
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
     "lint": "eslint src/**/*.ts",
+    "lint:fix": "biome check --write .",
     "format": "prettier --write 'src/**/*.ts'",
     "typecheck": "tsc --noEmit",
     "example": "tsx examples"
@@ -67,6 +71,7 @@
     "chalk": "^5.6.2",
     "cli-boxes": "^4.0.1",
     "cli-spinners": "^3.4.0",
+    "commander": "^14.0.2",
     "highlight.js": "^11.11.1",
     "log-symbols": "^7.0.1",
     "marked": "^15.0.12",

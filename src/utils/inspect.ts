@@ -1,57 +1,61 @@
-import { Console } from '../console/console';
-import { Panel } from '../renderables/panel';
-import { Syntax } from '../syntax/syntax';
-import { Table } from '../renderables/table';
+import { Console } from "../console/console";
+import { Panel } from "../renderables/panel";
+import { Table } from "../renderables/table";
+import { Syntax } from "../syntax/syntax";
 
 export interface InspectOptions {
-  title?: string;
-  depth?: number;
-  private?: boolean;
+	title?: string;
+	depth?: number;
+	private?: boolean;
 }
 
 /**
  * Inspects an object and prints a formatted representation.
  */
+// biome-ignore lint/suspicious/noExplicitAny: Generic inspection needs any
 export function inspect(obj: any, options: InspectOptions = {}): void {
-  const console = new Console();
-  const title = options.title ?? `Inspect: ${obj?.constructor?.name ?? typeof obj}`;
-  
-  // 1. Basic properties table
-  const table = new Table({ box: 'single', showHeader: true });
-  table.addColumn("Property", { style: "cyan" });
-  table.addColumn("Type", { style: "magenta" });
-  table.addColumn("Value");
+	const console = new Console();
+	const title =
+		options.title ?? `Inspect: ${obj?.constructor?.name ?? typeof obj}`;
 
-  const props = Object.getOwnPropertyNames(obj);
-  
-  // Sort props?
-  props.sort();
+	// 1. Basic properties table
+	const table = new Table({ box: "single", showHeader: true });
+	table.addColumn("Property", { style: "cyan" });
+	table.addColumn("Type", { style: "magenta" });
+	table.addColumn("Value");
 
-  for (const prop of props) {
-      const value = obj[prop];
-      let type: string = typeof value;
-      let valueStr = String(value);
+	const props = Object.getOwnPropertyNames(obj);
 
-      if (value === null) type = 'null';
-      else if (Array.isArray(value)) type = 'Array';
-      
-      // Truncate long values
-      if (valueStr.length > 50) valueStr = valueStr.substring(0, 47) + '...';
+	// Sort props?
+	props.sort();
 
-      table.addRow(prop, type, valueStr);
-  }
+	for (const prop of props) {
+		const value = obj[prop];
+		let type: string = typeof value;
+		let valueStr = String(value);
 
-  // 2. Syntax highlight the raw JSON representation for detail
-  let json = '';
-  try {
-      json = JSON.stringify(obj, null, 2);
-  } catch {
-      json = '[Circular]';
-  }
+		if (value === null) type = "null";
+		else if (Array.isArray(value)) type = "Array";
 
-  const syntax = new Syntax(json, 'json');
-  void syntax; 
-  
-  // Render
-  console.print(new Panel(table, { title: title, box: 'round', borderStyle: undefined }));
+		// Truncate long values
+		if (valueStr.length > 50) valueStr = `${valueStr.substring(0, 47)}...`;
+
+		table.addRow(prop, type, valueStr);
+	}
+
+	// 2. Syntax highlight the raw JSON representation for detail
+	let json = "";
+	try {
+		json = JSON.stringify(obj, null, 2);
+	} catch {
+		json = "[Circular]";
+	}
+
+	const syntax = new Syntax(json, "json");
+	void syntax;
+
+	// Render
+	console.print(
+		new Panel(table, { title: title, box: "round", borderStyle: undefined }),
+	);
 }
