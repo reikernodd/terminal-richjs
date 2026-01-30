@@ -13,8 +13,14 @@ import {
 } from './index.js';
 import { readResource } from './cli/utils.js';
 import type { Renderable } from './types/renderable.js';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
 
-const VERSION = '0.2.1';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const packageJson = JSON.parse(readFileSync(join(__dirname, '../package.json'), 'utf-8'));
+const VERSION = packageJson.version;
 
 type AlignMethod = 'left' | 'center' | 'right';
 

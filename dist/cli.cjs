@@ -14,7 +14,10 @@ var hljs = require('highlight.js');
 var boxes = require('cli-boxes');
 var marked = require('marked');
 var TerminalRenderer = require('marked-terminal');
+var url = require('url');
+var path = require('path');
 
+var _documentCurrentScript = typeof document !== 'undefined' ? document.currentScript : null;
 function _interopDefault (e) { return e && e.__esModule ? e : { default: e }; }
 
 var process2__default = /*#__PURE__*/_interopDefault(process2);
@@ -2246,9 +2249,10 @@ function detectTypeFromExtension(path) {
   const extension = path.toLowerCase().match(/\.[^.]+$/)?.[0];
   return extension ? extensionMap[extension] : void 0;
 }
-
-// src/cli.ts
-var VERSION = "0.2.1";
+var __filename$1 = url.fileURLToPath((typeof document === 'undefined' ? require('u' + 'rl').pathToFileURL(__filename).href : (_documentCurrentScript && _documentCurrentScript.tagName.toUpperCase() === 'SCRIPT' && _documentCurrentScript.src || new URL('cli.cjs', document.baseURI).href)));
+var __dirname$1 = path.dirname(__filename$1);
+var packageJson = JSON.parse(fs.readFileSync(path.join(__dirname$1, "../package.json"), "utf-8"));
+var VERSION = packageJson.version;
 var program = new commander.Command();
 program.name("richjs").description("Rich terminal rendering for Node.js - CLI toolbox for fancy terminal output").version(VERSION, "-v, --version", "Display version").argument("[resource]", 'Path to file, URL, or text to render (use "-" for stdin)', "").option("-p, --print", "Print console markup").option("-m, --markdown", "Render as markdown").option("-J, --json", "Render as JSON").option("-s, --syntax", "Force syntax highlighting").option("-n, --line-numbers", "Show line numbers (for syntax highlighting)").option("--theme <name>", "Syntax theme (monokai, dracula, github-light, onedark)", "monokai").option("-x, --lexer <name>", "Specify lexer for syntax highlighting").option(
   "-a, --panel <box>",
