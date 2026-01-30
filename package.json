@@ -1,6 +1,6 @@
 {
   "name": "terminal-richjs",
-  "version": "0.2.1",
+  "version": "1.0.0",
   "description": "Rich terminal rendering for Node.js - inspired by Python's Rich",
   "type": "module",
   "main": "./dist/index.cjs",
