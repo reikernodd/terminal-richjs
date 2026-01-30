@@ -6,10 +6,10 @@ import os from 'os';
 import terminalSize from 'terminal-size';
 import chalk from 'chalk';
 import tinycolor from 'tinycolor2';
-import stringWidth from 'string-width';
-import fs from 'fs';
+import stringWidth3 from 'string-width';
+import fs, { readFileSync } from 'fs';
 import hljs from 'highlight.js';
-import 'cli-boxes';
+import boxes from 'cli-boxes';
 import { marked } from 'marked';
 import TerminalRenderer from 'marked-terminal';
 
@@ -457,7 +457,7 @@ var Segment = class _Segment {
    */
   cellLength() {
     if (this.isControl) return 0;
-    return stringWidth(this.text);
+    return stringWidth3(this.text);
   }
   /**
    * Renders the segment to an ANSI string.
@@ -817,7 +817,7 @@ var Syntax = class _Syntax {
           style = style.combine(Style.parse("on #3a1d1d"));
         }
         segments.push(new Segment(token.text, style));
-        lineWidth += stringWidth(token.text);
+        lineWidth += stringWidth3(token.text);
       }
       segments.push(new Segment("\n", Style.null(), true));
       const totalLineWidth = lineWidth + (showLineNumbers ? lineNumberWidth + 5 : 0);
@@ -1512,26 +1512,823 @@ var Console = class {
     process2.stdout.write(text);
   }
 };
+var Text = class {
+  constructor(content, style = Style.null(), justify = "left", overflow = "fold", noWrap = false) {
+    this.style = style;
+    this.justify = justify;
+    this.overflow = overflow;
+    this.noWrap = noWrap;
+    if (typeof content === "string") {
+      const parser = new MarkupParser();
+      this.segments = parser.parse(content);
+    } else {
+      this.segments = content;
+    }
+  }
+  segments;
+  __rich_console__(console, options) {
+    const width = options.width ?? console.width;
+    const text = this.segments.map((s) => s.render()).join("");
+    let wrapped = text;
+    if (!this.noWrap) {
+      wrapped = wrapAnsi(text, width, { hard: true, trim: false });
+    }
+    const resultSegments = wrapped.split("\n").flatMap((line) => {
+      return [new Segment(line), new Segment("\n", Style.null(), true)];
+    });
+    return {
+      segments: resultSegments,
+      width
+    };
+  }
+};
+var CUSTOM_BOXES = {
+  // Rounded corners (may not be in all versions of cli-boxes)
+  rounded: {
+    topLeft: "\u256D",
+    top: "\u2500",
+    topRight: "\u256E",
+    right: "\u2502",
+    bottomRight: "\u256F",
+    bottom: "\u2500",
+    bottomLeft: "\u2570",
+    left: "\u2502",
+    topMid: "\u252C",
+    midMid: "\u253C",
+    bottomMid: "\u2534",
+    leftMid: "\u251C",
+    rightMid: "\u2524",
+    mid: "\u2500",
+    verticalMid: "\u2502"
+  },
+  round: {
+    topLeft: "\u256D",
+    top: "\u2500",
+    topRight: "\u256E",
+    right: "\u2502",
+    bottomRight: "\u256F",
+    bottom: "\u2500",
+    bottomLeft: "\u2570",
+    left: "\u2502",
+    topMid: "\u252C",
+    midMid: "\u253C",
+    bottomMid: "\u2534",
+    leftMid: "\u251C",
+    rightMid: "\u2524",
+    mid: "\u2500",
+    verticalMid: "\u2502"
+  },
+  // Heavy/bold lines
+  heavy: {
+    topLeft: "\u250F",
+    top: "\u2501",
+    topRight: "\u2513",
+    right: "\u2503",
+    bottomRight: "\u251B",
+    bottom: "\u2501",
+    bottomLeft: "\u2517",
+    left: "\u2503",
+    topMid: "\u2533",
+    midMid: "\u254B",
+    bottomMid: "\u253B",
+    leftMid: "\u2523",
+    rightMid: "\u252B",
+    mid: "\u2501",
+    verticalMid: "\u2503"
+  },
+  // Double lines
+  double: {
+    topLeft: "\u2554",
+    top: "\u2550",
+    topRight: "\u2557",
+    right: "\u2551",
+    bottomRight: "\u255D",
+    bottom: "\u2550",
+    bottomLeft: "\u255A",
+    left: "\u2551",
+    topMid: "\u2566",
+    midMid: "\u256C",
+    bottomMid: "\u2569",
+    leftMid: "\u2560",
+    rightMid: "\u2563",
+    mid: "\u2550",
+    verticalMid: "\u2551"
+  },
+  // Single/square lines
+  single: {
+    topLeft: "\u250C",
+    top: "\u2500",
+    topRight: "\u2510",
+    right: "\u2502",
+    bottomRight: "\u2518",
+    bottom: "\u2500",
+    bottomLeft: "\u2514",
+    left: "\u2502",
+    topMid: "\u252C",
+    midMid: "\u253C",
+    bottomMid: "\u2534",
+    leftMid: "\u251C",
+    rightMid: "\u2524",
+    mid: "\u2500",
+    verticalMid: "\u2502"
+  },
+  square: {
+    topLeft: "\u250C",
+    top: "\u2500",
+    topRight: "\u2510",
+    right: "\u2502",
+    bottomRight: "\u2518",
+    bottom: "\u2500",
+    bottomLeft: "\u2514",
+    left: "\u2502",
+    topMid: "\u252C",
+    midMid: "\u253C",
+    bottomMid: "\u2534",
+    leftMid: "\u251C",
+    rightMid: "\u2524",
+    mid: "\u2500",
+    verticalMid: "\u2502"
+  },
+  // ASCII-safe
+  ascii: {
+    topLeft: "+",
+    top: "-",
+    topRight: "+",
+    right: "|",
+    bottomRight: "+",
+    bottom: "-",
+    bottomLeft: "+",
+    left: "|",
+    topMid: "+",
+    midMid: "+",
+    bottomMid: "+",
+    leftMid: "+",
+    rightMid: "+",
+    mid: "-",
+    verticalMid: "|"
+  },
+  // Minimal - no borders
+  minimal: {
+    topLeft: " ",
+    top: " ",
+    topRight: " ",
+    right: " ",
+    bottomRight: " ",
+    bottom: " ",
+    bottomLeft: " ",
+    left: " ",
+    topMid: " ",
+    midMid: " ",
+    bottomMid: " ",
+    leftMid: " ",
+    rightMid: " ",
+    mid: "\u2500",
+    verticalMid: " "
+  },
+  // Simple - just horizontal lines
+  simple: {
+    topLeft: " ",
+    top: "\u2500",
+    topRight: " ",
+    right: " ",
+    bottomRight: " ",
+    bottom: "\u2500",
+    bottomLeft: " ",
+    left: " ",
+    topMid: " ",
+    midMid: "\u2500",
+    bottomMid: " ",
+    leftMid: " ",
+    rightMid: " ",
+    mid: "\u2500",
+    verticalMid: " "
+  },
+  // Markdown style
+  markdown: {
+    topLeft: " ",
+    top: " ",
+    topRight: " ",
+    right: "|",
+    bottomRight: " ",
+    bottom: " ",
+    bottomLeft: " ",
+    left: "|",
+    topMid: " ",
+    midMid: "|",
+    bottomMid: " ",
+    leftMid: "|",
+    rightMid: "|",
+    mid: "-",
+    verticalMid: "|"
+  }
+};
+function getBox(style) {
+  if (style === "none") return null;
+  if (style in CUSTOM_BOXES) {
+    return CUSTOM_BOXES[style];
+  }
+  if (style === "bold") {
+    return CUSTOM_BOXES.heavy;
+  }
+  const cliBox = boxes[style];
+  if (cliBox) {
+    return {
+      ...cliBox,
+      topMid: cliBox.topMid ?? "\u252C",
+      midMid: cliBox.midMid ?? "\u253C",
+      bottomMid: cliBox.bottomMid ?? "\u2534",
+      leftMid: cliBox.leftMid ?? "\u251C",
+      rightMid: cliBox.rightMid ?? "\u2524",
+      mid: cliBox.mid ?? "\u2500",
+      verticalMid: cliBox.verticalMid ?? "\u2502"
+    };
+  }
+  return CUSTOM_BOXES.rounded;
+}
+
+// src/core/lines.ts
+function splitLines(segments) {
+  const lines = [];
+  let currentLine = [];
+  for (const segment of segments) {
+    if (segment.text.includes("\n")) {
+      const parts = segment.text.split("\n");
+      for (let i = 0; i < parts.length; i++) {
+        const part = parts[i];
+        if (part) {
+          currentLine.push(new Segment(part, segment.style, segment.isControl));
+        }
+        if (i < parts.length - 1) {
+          lines.push(currentLine);
+          currentLine = [];
+        }
+      }
+    } else {
+      currentLine.push(segment);
+    }
+  }
+  if (currentLine.length > 0) {
+    lines.push(currentLine);
+  }
+  return lines;
+}
+function padLine(line, width, style = Style.null()) {
+  const currentWidth = line.reduce((acc, s) => acc + s.cellLength(), 0);
+  if (currentWidth >= width) return line;
+  const padding = width - currentWidth;
+  return [...line, new Segment(" ".repeat(padding), style)];
+}
+var Panel = class _Panel {
+  constructor(renderable, options = {}) {
+    this.renderable = renderable;
+    this.options = options;
+  }
+  /**
+   * Create a panel that fits its content (expand=false).
+   */
+  static fit(renderable, options = {}) {
+    return new _Panel(renderable, { ...options, expand: false });
+  }
+  __rich_console__(console, consoleOptions) {
+    const box = getBox(this.options.box ?? "rounded");
+    const expand = this.options.expand ?? true;
+    const maxWidth = this.options.width ?? consoleOptions.width ?? console.width;
+    const borderStyle = typeof this.options.borderStyle === "string" ? Style.parse(this.options.borderStyle) : this.options.borderStyle ?? Style.parse("dim");
+    const titleAlign = this.options.titleAlign ?? "center";
+    const subtitleAlign = this.options.subtitleAlign ?? "center";
+    const padding = this.normalizePadding(this.options.padding ?? 1);
+    const segments = [];
+    if (!box) {
+      return { segments: [], width: 0 };
+    }
+    let contentSegments = [];
+    if (typeof this.renderable === "string") {
+      contentSegments = [new Segment(this.renderable)];
+    } else if (isRenderable(this.renderable)) {
+      const contentWidth = maxWidth - 2 - padding[1] - padding[3];
+      const result = this.renderable.__rich_console__(console, {
+        ...consoleOptions,
+        width: contentWidth
+      });
+      if ("segments" in result) {
+        contentSegments = Array.from(result.segments);
+      }
+    }
+    const lines = splitLines(contentSegments);
+    let maxContentWidth = 0;
+    for (const line of lines) {
+      const lineWidth = line.reduce((w, seg) => w + stringWidth3(seg.text), 0);
+      if (lineWidth > maxContentWidth) maxContentWidth = lineWidth;
+    }
+    const titleWidth = this.options.title ? stringWidth3(this.options.title) + 4 : 0;
+    const subtitleWidth = this.options.subtitle ? stringWidth3(this.options.subtitle) + 4 : 0;
+    let panelWidth;
+    if (expand) {
+      panelWidth = maxWidth;
+    } else {
+      panelWidth = Math.min(
+        maxWidth,
+        Math.max(
+          maxContentWidth + 2 + padding[1] + padding[3],
+          titleWidth + 2,
+          subtitleWidth + 2
+        )
+      );
+    }
+    const innerWidth = panelWidth - 2;
+    segments.push(
+      ...this.renderTopBorder(box, innerWidth, borderStyle, titleAlign)
+    );
+    segments.push(new Segment("\n", Style.null(), true));
+    for (let i = 0; i < padding[0]; i++) {
+      segments.push(new Segment(box.left, borderStyle));
+      segments.push(new Segment(" ".repeat(innerWidth)));
+      segments.push(new Segment(box.right, borderStyle));
+      segments.push(new Segment("\n", Style.null(), true));
+    }
+    for (const line of lines) {
+      segments.push(new Segment(box.left, borderStyle));
+      segments.push(new Segment(" ".repeat(padding[3])));
+      const contentPaddedWidth = innerWidth - padding[1] - padding[3];
+      const paddedLine = padLine(line, contentPaddedWidth);
+      segments.push(...paddedLine);
+      segments.push(new Segment(" ".repeat(padding[1])));
+      segments.push(new Segment(box.right, borderStyle));
+      segments.push(new Segment("\n", Style.null(), true));
+    }
+    if (lines.length === 0) {
+      segments.push(new Segment(box.left, borderStyle));
+      segments.push(new Segment(" ".repeat(innerWidth)));
+      segments.push(new Segment(box.right, borderStyle));
+      segments.push(new Segment("\n", Style.null(), true));
+    }
+    for (let i = 0; i < padding[2]; i++) {
+      segments.push(new Segment(box.left, borderStyle));
+      segments.push(new Segment(" ".repeat(innerWidth)));
+      segments.push(new Segment(box.right, borderStyle));
+      segments.push(new Segment("\n", Style.null(), true));
+    }
+    segments.push(
+      ...this.renderBottomBorder(box, innerWidth, borderStyle, subtitleAlign)
+    );
+    segments.push(new Segment("\n", Style.null(), true));
+    return {
+      segments,
+      width: panelWidth
+    };
+  }
+  /**
+   * Normalize padding to [top, right, bottom, left] format.
+   */
+  normalizePadding(padding) {
+    if (typeof padding === "number") {
+      return [padding, padding, padding, padding];
+    }
+    if (padding.length === 2) {
+      return [padding[0], padding[1], padding[0], padding[1]];
+    }
+    return padding;
+  }
+  /**
+   * Render top border with optional title.
+   */
+  renderTopBorder(box, innerWidth, borderStyle, align) {
+    const segments = [];
+    if (this.options.title) {
+      const title = ` ${this.options.title} `;
+      const titleWidth = stringWidth3(title);
+      const remainingWidth = Math.max(0, innerWidth - titleWidth);
+      let leftLine;
+      let rightLine;
+      switch (align) {
+        case "left":
+          leftLine = "";
+          rightLine = box.top.repeat(remainingWidth);
+          break;
+        case "right":
+          leftLine = box.top.repeat(remainingWidth);
+          rightLine = "";
+          break;
+        case "center":
+        default: {
+          const leftWidth = Math.floor(remainingWidth / 2);
+          leftLine = box.top.repeat(leftWidth);
+          rightLine = box.top.repeat(remainingWidth - leftWidth);
+          break;
+        }
+      }
+      segments.push(new Segment(box.topLeft, borderStyle));
+      segments.push(new Segment(leftLine, borderStyle));
+      segments.push(new Segment(title, Style.parse("bold")));
+      segments.push(new Segment(rightLine, borderStyle));
+      segments.push(new Segment(box.topRight, borderStyle));
+    } else {
+      segments.push(
+        new Segment(
+          box.topLeft + box.top.repeat(innerWidth) + box.topRight,
+          borderStyle
+        )
+      );
+    }
+    return segments;
+  }
+  /**
+   * Render bottom border with optional subtitle.
+   */
+  renderBottomBorder(box, innerWidth, borderStyle, align) {
+    const segments = [];
+    if (this.options.subtitle) {
+      const subtitle = ` ${this.options.subtitle} `;
+      const subtitleWidth = stringWidth3(subtitle);
+      const remainingWidth = Math.max(0, innerWidth - subtitleWidth);
+      let leftLine;
+      let rightLine;
+      switch (align) {
+        case "left":
+          leftLine = "";
+          rightLine = box.bottom.repeat(remainingWidth);
+          break;
+        case "right":
+          leftLine = box.bottom.repeat(remainingWidth);
+          rightLine = "";
+          break;
+        case "center":
+        default: {
+          const leftWidth = Math.floor(remainingWidth / 2);
+          leftLine = box.bottom.repeat(leftWidth);
+          rightLine = box.bottom.repeat(remainingWidth - leftWidth);
+          break;
+        }
+      }
+      segments.push(new Segment(box.bottomLeft, borderStyle));
+      segments.push(new Segment(leftLine, borderStyle));
+      segments.push(new Segment(subtitle, Style.parse("dim italic")));
+      segments.push(new Segment(rightLine, borderStyle));
+      segments.push(new Segment(box.bottomRight, borderStyle));
+    } else {
+      segments.push(
+        new Segment(
+          box.bottomLeft + box.bottom.repeat(innerWidth) + box.bottomRight,
+          borderStyle
+        )
+      );
+    }
+    return segments;
+  }
+};
+
+// src/renderables/padding.ts
+var Padding = class {
+  constructor(renderable, padding) {
+    this.renderable = renderable;
+    if (typeof padding === "number") {
+      this.top = this.right = this.bottom = this.left = padding;
+    } else if (Array.isArray(padding)) {
+      if (padding.length === 2) {
+        this.top = this.bottom = padding[0];
+        this.right = this.left = padding[1];
+      } else {
+        [this.top, this.right, this.bottom, this.left] = padding;
+      }
+    } else {
+      this.top = this.right = this.bottom = this.left = 0;
+    }
+  }
+  top;
+  right;
+  bottom;
+  left;
+  __rich_console__(console, options) {
+    const width = options.width ?? console.width;
+    const innerWidth = Math.max(0, width - this.left - this.right);
+    let contentSegments = [];
+    if (typeof this.renderable === "string") {
+      contentSegments = [new Segment(this.renderable)];
+    } else if (isRenderable(this.renderable)) {
+      const result = this.renderable.__rich_console__(console, {
+        ...options,
+        width: innerWidth
+      });
+      if ("segments" in result) contentSegments = result.segments;
+    }
+    const lines = splitLines(contentSegments);
+    const segments = [];
+    for (let i = 0; i < this.top; i++) {
+      segments.push(new Segment(" ".repeat(width) + "\n"));
+    }
+    const leftPad = " ".repeat(this.left);
+    for (const line of lines) {
+      segments.push(new Segment(leftPad));
+      segments.push(...line);
+      segments.push(new Segment("\n"));
+    }
+    for (let i = 0; i < this.bottom; i++) {
+      segments.push(new Segment(" ".repeat(width) + "\n"));
+    }
+    return { segments, width };
+  }
+};
+
+// src/renderables/align.ts
+var Align = class _Align {
+  constructor(renderable, align, style) {
+    this.renderable = renderable;
+    this.align = align;
+    this.style = style;
+  }
+  static left(renderable) {
+    return new _Align(renderable, "left");
+  }
+  static center(renderable) {
+    return new _Align(renderable, "center");
+  }
+  static right(renderable) {
+    return new _Align(renderable, "right");
+  }
+  __rich_console__(console, options) {
+    const width = options.width ?? console.width;
+    let contentSegments = [];
+    if (typeof this.renderable === "string") {
+      contentSegments = [new Segment(this.renderable)];
+    } else if (isRenderable(this.renderable)) {
+      const result = this.renderable.__rich_console__(console, options);
+      if ("segments" in result) contentSegments = result.segments;
+    }
+    const lines = splitLines(contentSegments);
+    const segments = [];
+    for (const line of lines) {
+      const lineWidth = line.reduce((acc, s) => acc + s.cellLength(), 0);
+      const remaining = Math.max(0, width - lineWidth);
+      if (remaining === 0) {
+        segments.push(...line);
+      } else {
+        let leftSpace = 0;
+        if (this.align === "center") leftSpace = Math.floor(remaining / 2);
+        else if (this.align === "right") leftSpace = remaining;
+        if (leftSpace > 0) segments.push(new Segment(" ".repeat(leftSpace)));
+        segments.push(...line);
+      }
+      segments.push(new Segment("\n"));
+    }
+    return { segments, width };
+  }
+};
+
+// src/renderables/json.ts
+var JSON2 = class _JSON {
+  text;
+  highlight;
+  constructor(json, options = {}) {
+    const { indent = 2, sortKeys = false } = options;
+    this.highlight = options.highlight ?? true;
+    try {
+      let data = globalThis.JSON.parse(json);
+      if (sortKeys && typeof data === "object" && data !== null) {
+        data = this.sortObject(data);
+      }
+      this.text = globalThis.JSON.stringify(data, null, indent);
+    } catch {
+      this.text = json;
+    }
+  }
+  /**
+   * Create JSON from any data object.
+   */
+  static fromData(data, options = {}) {
+    const { indent = 2, sortKeys = false } = options;
+    let processedData = data;
+    if (sortKeys && typeof data === "object" && data !== null) {
+      processedData = _JSON.prototype.sortObject(data);
+    }
+    const json = globalThis.JSON.stringify(processedData, null, indent);
+    const instance = new _JSON(json, { ...options, sortKeys: false });
+    return instance;
+  }
+  sortObject(obj) {
+    if (Array.isArray(obj)) {
+      return obj.map((item) => this.sortObject(item));
+    }
+    if (obj !== null && typeof obj === "object") {
+      const sorted = {};
+      const keys = Object.keys(obj).sort();
+      for (const key of keys) {
+        sorted[key] = this.sortObject(obj[key]);
+      }
+      return sorted;
+    }
+    return obj;
+  }
+  /**
+   * Apply JSON syntax highlighting.
+   */
+  highlightJSON(text) {
+    if (!this.highlight) {
+      return text;
+    }
+    const highlighted = text.replace(/"([^"\\]|\\.)*"/g, (match) => {
+      return Style.parse("#f1fa8c").apply(match);
+    }).replace(/\b(-?\d+\.?\d*(?:e[+-]?\d+)?)\b/gi, (match) => {
+      return Style.parse("#bd93f9").apply(match);
+    }).replace(/\b(true|false)\b/g, (match) => {
+      return match === "true" ? Style.parse("#50fa7b").apply(match) : Style.parse("#ff79c6").apply(match);
+    }).replace(/\bnull\b/g, (match) => {
+      return Style.parse("#8be9fd italic").apply(match);
+    });
+    return highlighted;
+  }
+  __rich_console__(_console, _consoleOptions) {
+    const highlighted = this.highlightJSON(this.text);
+    return {
+      segments: [new Segment(highlighted + "\n", Style.null())],
+      width: this.text.split("\n").reduce((max, line) => Math.max(max, line.length), 0)
+    };
+  }
+};
 marked.setOptions({
   renderer: new TerminalRenderer()
 });
+var Markdown = class {
+  constructor(markup) {
+    this.markup = markup;
+  }
+  __rich_console__(_console, _options) {
+    const rendered = marked.parse(this.markup);
+    return {
+      segments: [new Segment(rendered)],
+      width: 0
+      // Placeholder
+    };
+  }
+};
 
 // src/index.ts
 var globalConsole = new Console();
 globalConsole.print.bind(globalConsole);
+async function readResource(path) {
+  if (path === "-") {
+    const content = await readStdin();
+    return { content };
+  }
+  if (path.startsWith("http://") || path.startsWith("https://")) {
+    const content = await readUrl(path);
+    const detectedType = detectTypeFromExtension(path);
+    return { content, detectedType };
+  }
+  try {
+    const content = readFileSync(path, "utf-8");
+    const detectedType = detectTypeFromExtension(path);
+    return { content, detectedType };
+  } catch (error) {
+    throw new Error(`Unable to read file: ${path}. ${error}`);
+  }
+}
+async function readStdin() {
+  return new Promise((resolve, reject) => {
+    let data = "";
+    process.stdin.setEncoding("utf-8");
+    process.stdin.on("data", (chunk) => {
+      data += chunk;
+    });
+    process.stdin.on("end", () => {
+      resolve(data);
+    });
+    process.stdin.on("error", (error) => {
+      reject(new Error(`Failed to read from stdin: ${error}`));
+    });
+  });
+}
+async function readUrl(url) {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    return await response.text();
+  } catch (error) {
+    throw new Error(`Unable to fetch URL: ${url}. ${error}`);
+  }
+}
+function detectTypeFromExtension(path) {
+  const extensionMap = {
+    ".md": "markdown",
+    ".markdown": "markdown",
+    ".json": "json",
+    ".csv": "csv",
+    ".tsv": "csv",
+    ".js": "javascript",
+    ".ts": "typescript",
+    ".jsx": "javascript",
+    ".tsx": "typescript",
+    ".py": "python",
+    ".html": "html",
+    ".css": "css",
+    ".xml": "xml",
+    ".yaml": "yaml",
+    ".yml": "yaml",
+    ".toml": "toml"
+  };
+  const extension = path.toLowerCase().match(/\.[^.]+$/)?.[0];
+  return extension ? extensionMap[extension] : void 0;
+}
 
 // src/cli.ts
 var VERSION = "0.2.1";
 var program = new Command();
-program.name("richjs").description("Rich terminal rendering for Node.js - CLI toolbox for fancy terminal output").version(VERSION, "-v, --version", "Display version").argument("[resource]", 'Path to file, URL, or text to render (use "-" for stdin)', "").helpOption("-h, --help", "Display help");
-program.action((resource) => {
+program.name("richjs").description("Rich terminal rendering for Node.js - CLI toolbox for fancy terminal output").version(VERSION, "-v, --version", "Display version").argument("[resource]", 'Path to file, URL, or text to render (use "-" for stdin)', "").option("-p, --print", "Print console markup").option("-m, --markdown", "Render as markdown").option("-J, --json", "Render as JSON").option("-s, --syntax", "Force syntax highlighting").option("-n, --line-numbers", "Show line numbers (for syntax highlighting)").option("--theme <name>", "Syntax theme (monokai, dracula, github-light, onedark)", "monokai").option("-x, --lexer <name>", "Specify lexer for syntax highlighting").option(
+  "-a, --panel <box>",
+  "Wrap output in a panel with box style (rounded, heavy, double, square, etc.)"
+).option("--title <text>", "Set panel title").option("--caption <text>", "Set panel caption").option("-w, --width <size>", "Set output width", parseInt).option("-l, --left", "Align output to left").option("-c, --center", "Align output to center").option("-r, --right", "Align output to right").option("-d, --padding <padding>", "Add padding (single number or top,right,bottom,left)").option("-S, --style <style>", "Apply style to output").helpOption("-h, --help", "Display help");
+program.action(async (resource, options) => {
   const console = new Console();
   if (!resource) {
     console.print("[yellow]No resource provided. Use --help for usage information.[/]");
     process.exit(0);
   }
-  console.print(`[green]Resource received:[/] ${resource}`);
-  console.print("[dim]Full CLI implementation coming in next phases...[/]");
+  try {
+    const { content, detectedType } = await readResource(resource);
+    let mode = "syntax";
+    if (options.print) {
+      mode = "print";
+    } else if (options.markdown) {
+      mode = "markdown";
+    } else if (options.json) {
+      mode = "json";
+    } else if (options.syntax) {
+      mode = "syntax";
+    } else {
+      if (detectedType === "markdown") {
+        mode = "markdown";
+      } else if (detectedType === "json") {
+        mode = "json";
+      } else {
+        mode = "syntax";
+      }
+    }
+    let renderable;
+    switch (mode) {
+      case "print": {
+        renderable = new Text(content);
+        break;
+      }
+      case "markdown": {
+        renderable = new Markdown(content);
+        break;
+      }
+      case "json": {
+        renderable = new JSON2(content);
+        break;
+      }
+      case "syntax":
+      default: {
+        const lexer = options.lexer || detectedType || "text";
+        renderable = new Syntax(content, lexer, {
+          theme: options.theme,
+          lineNumbers: options.lineNumbers
+        });
+        break;
+      }
+    }
+    if (options.padding) {
+      const paddingValues = options.padding.split(",").map((v) => parseInt(v.trim()));
+      if (paddingValues.length === 1) {
+        renderable = new Padding(renderable, paddingValues[0]);
+      } else if (paddingValues.length === 2) {
+        renderable = new Padding(renderable, [paddingValues[0], paddingValues[1]]);
+      } else if (paddingValues.length === 4) {
+        renderable = new Padding(renderable, [
+          paddingValues[0],
+          paddingValues[1],
+          paddingValues[2],
+          paddingValues[3]
+        ]);
+      } else {
+        console.print("[red]Error:[/] Padding should be 1, 2, or 4 comma-separated values");
+        process.exit(1);
+      }
+    }
+    if (options.panel) {
+      renderable = new Panel(renderable, {
+        box: options.panel,
+        title: options.title,
+        subtitle: options.caption,
+        borderStyle: options.style
+      });
+    }
+    if (options.left || options.center || options.right) {
+      let align = "left";
+      if (options.center) align = "center";
+      if (options.right) align = "right";
+      renderable = new Align(renderable, align);
+    }
+    if (options.width) {
+      console.print(renderable, { width: options.width });
+    } else {
+      console.print(renderable);
+    }
+  } catch (error) {
+    console.print(`[red]Error:[/] ${error instanceof Error ? error.message : String(error)}`);
+    process.exit(1);
+  }
 });
 program.parse();
 //# sourceMappingURL=cli.js.map
