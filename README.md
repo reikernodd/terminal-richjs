@@ -302,6 +302,187 @@ try {
 
 ---
 
+# RichJS CLI
+
+**RichJS CLI** is a command line toolbox for fancy output in the terminal. Use the `richjs` command to syntax highlight code, render markdown, display JSON with pretty formatting, and more — directly from the command line.
+
+## Installation
+
+RichJS CLI is included when you install the `terminal-richjs` package:
+
+```bash
+npm install terminal-richjs
+# or
+npx richjs --help
+```
+
+For global installation:
+
+```bash
+npm install -g terminal-richjs
+richjs --help
+```
+
+## Usage
+
+### Syntax Highlighting
+
+To syntax highlight a file, enter `richjs` followed by a path. Many languages are supported:
+
+```bash
+richjs src/index.ts
+```
+
+Add the `--line-numbers` or `-n` switch to enable line numbers:
+
+```bash
+richjs src/index.ts -n
+```
+
+You can specify a theme with `--theme`:
+
+```bash
+richjs src/index.ts --theme dracula
+```
+
+**Available themes:** `monokai` (default), `dracula`, `github-light`, `onedark`
+
+If you want to override the auto-detected lexer, you can explicitly set it with `--lexer` or `-x`:
+
+```bash
+richjs myfile.txt -x javascript
+```
+
+### Markdown
+
+You can render markdown by adding the `--markdown` or `-m` switch. If the file ends with `.md`, markdown will be auto-detected:
+
+```bash
+richjs README.md
+# or explicitly
+richjs README.md -m
+```
+
+### JSON
+
+You can request JSON pretty formatting and highlighting with the `--json` or `-J` switches. If the file ends with `.json`, JSON will be auto-detected:
+
+```bash
+richjs package.json
+# or explicitly
+richjs data.json -J
+```
+
+### Console Markup
+
+You can print rich markup strings directly from the command line using the `--print` or `-p` flag:
+
+```bash
+richjs "Hello [bold green]World[/bold green]!" -p
+echo "Status: [red]Error[/red]" | richjs - -p
+```
+
+### Reading from stdin
+
+Use `-` as the filename to read from standard input:
+
+```bash
+cat myfile.js | richjs - -s
+echo '{"name":"RichJS"}' | richjs - -J
+```
+
+### Layout Options
+
+Wrap output in a panel with the `--panel` or `-a` option:
+
+```bash
+richjs README.md -m --panel rounded --title "Documentation"
+```
+
+**Available box styles:** `rounded`, `heavy`, `double`, `square`, `horizontal`, `simple`, etc.
+
+Add padding around content with `--padding` or `-d`:
+
+```bash
+richjs package.json -J --padding 2
+richjs data.json -J --padding "1,2,1,2"  # top,right,bottom,left
+```
+
+Set alignment with `--left`, `--center` (`-c`), or `--right` (`-r`):
+
+```bash
+richjs package.json -J --panel heavy --title "Config" --center
+```
+
+Set output width with `--width` or `-w`:
+
+```bash
+richjs README.md -m --width 80
+```
+
+Apply custom styles to panel borders:
+
+```bash
+richjs data.json -J --panel rounded --style "cyan"
+```
+
+### CLI Options Summary
+
+```
+Usage: richjs [options] [resource]
+
+Arguments:
+  resource                 Path to file, URL, or text to render (use "-" for stdin)
+
+Options:
+  -v, --version           Display version
+  -h, --help              Display help
+
+Rendering Modes:
+  -p, --print             Print console markup
+  -m, --markdown          Render as markdown
+  -J, --json              Render as JSON
+  -s, --syntax            Force syntax highlighting
+
+Syntax Options:
+  -n, --line-numbers      Show line numbers
+  --theme <name>          Syntax theme (monokai, dracula, github-light, onedark)
+  -x, --lexer <name>      Specify lexer for syntax highlighting
+
+Layout Options:
+  -a, --panel <box>       Wrap output in a panel with box style
+  --title <text>          Set panel title
+  --caption <text>        Set panel caption
+  -w, --width <size>      Set output width
+  -l, --left              Align output to left
+  -c, --center            Align output to center
+  -r, --right             Align output to right
+  -d, --padding <padding> Add padding (1, 2, or 4 comma-separated values)
+  -S, --style <style>     Apply style to output
+```
+
+### CLI Examples
+
+```bash
+# Syntax highlight with line numbers and custom theme
+richjs src/app.ts -n --theme dracula
+
+# Render markdown with width constraint
+richjs README.md -m -w 80
+
+# JSON with panel and centered alignment
+richjs package.json -J --panel heavy --title "Package" -c
+
+# Multiple layout options
+richjs data.json -J --panel rounded --title "Data" --padding 2 --style "cyan"
+
+# Pipe content from other commands
+cat config.json | richjs - -J --panel rounded
+echo "[bold]Hello[/bold] [red]World[/red]" | richjs - -p
+```
+
+---
+
 ## 🎯 Examples
 
 Run the demos:
@@ -386,8 +567,8 @@ import {
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please read our contributing guide.
+Contributions are welcome! Please read our [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct, development workflow, and how to submit pull requests.
 
 ## 📄 License
 
-MIT
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
